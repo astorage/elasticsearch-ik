@@ -54,6 +54,7 @@ import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.plugin.analysis.ik.AnalysisIkPlugin;
 import org.wltea.analyzer.cfg.Configuration;
 import org.apache.logging.log4j.Logger;
+import org.wltea.analyzer.dao.IkDicDAO;
 import org.wltea.analyzer.help.ESPluginLoggerFactory;
 
 
@@ -160,6 +161,9 @@ public class Dictionary {
 					singleton.loadSuffixDict();
 					singleton.loadPrepDict();
 					singleton.loadStopWordDict();
+
+					//启动加载mysql词典任务
+					new Thread(new HotDicReloadTask()).start();
 
 					if(cfg.isEnableRemoteDict()){
 						// 建立监控线程
@@ -400,6 +404,19 @@ public class Dictionary {
 		this.loadExtDict();
 		// 加载远程自定义词库
 		this.loadRemoteExtDict();
+		// 从mysql加载词典
+		this.loadMySQLExtDict();
+	}
+
+	/**
+	 * 从mysql加载词典
+	 */
+	private void loadMySQLExtDict() {
+		IkDicDAO ikDicDAO = new IkDicDAO();
+		List<String> extWordList = ikDicDAO.queryExtWord();
+		for (String word : extWordList) {
+			_MainDict.fillSegment(word.toCharArray());
+		}
 	}
 
 	/**
@@ -533,7 +550,20 @@ public class Dictionary {
 				}
 			}
 		}
+		//从mysql加载stopword词典
+		this.loadMySQLStopwordDict();
 
+	}
+
+	/**
+	 * 从mysql加载stopword词典
+	 */
+	private void loadMySQLStopwordDict() {
+		IkDicDAO ikDicDAO = new IkDicDAO();
+		List<String> stopWordList = ikDicDAO.queryExtWord();
+		for (String word : stopWordList) {
+			_StopWords.fillSegment(word.toCharArray());
+		}
 	}
 
 	/**

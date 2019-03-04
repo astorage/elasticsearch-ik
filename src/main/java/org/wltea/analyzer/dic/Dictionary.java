@@ -163,7 +163,8 @@ public class Dictionary {
 					singleton.loadStopWordDict();
 
 					//启动加载mysql词典任务
-					new Thread(new HotDicReloadTask()).start();
+					//new Thread(new HotDicReloadTask()).start();
+					pool.scheduleAtFixedRate(new HotDicReloadTask(), 10, 60, TimeUnit.SECONDS);
 
 					if(cfg.isEnableRemoteDict()){
 						// 建立监控线程
@@ -412,11 +413,17 @@ public class Dictionary {
 	 * 从mysql加载词典
 	 */
 	private void loadMySQLExtDict() {
-		IkDicDAO ikDicDAO = new IkDicDAO();
-		List<String> extWordList = ikDicDAO.queryExtWord();
-		for (String word : extWordList) {
-			_MainDict.fillSegment(word.toCharArray());
-		}
+		SpecialPermission.check();
+		AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
+			IkDicDAO ikDicDAO = new IkDicDAO();
+			List<String> extWordList = ikDicDAO.queryExtWord();
+			logger.info("ext_dic : " + extWordList);
+			for (String word : extWordList) {
+				_MainDict.fillSegment(word.trim().toCharArray());
+			}
+			return null;
+		});
+
 	}
 
 	/**
@@ -559,11 +566,18 @@ public class Dictionary {
 	 * 从mysql加载stopword词典
 	 */
 	private void loadMySQLStopwordDict() {
-		IkDicDAO ikDicDAO = new IkDicDAO();
-		List<String> stopWordList = ikDicDAO.queryExtWord();
-		for (String word : stopWordList) {
-			_StopWords.fillSegment(word.toCharArray());
-		}
+
+
+		SpecialPermission.check();
+		AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
+			IkDicDAO ikDicDAO = new IkDicDAO();
+			List<String> stopWordList = ikDicDAO.queryStopWord();
+			logger.info("stop_dic : " + stopWordList);
+			for (String word : stopWordList) {
+				_StopWords.fillSegment(word.trim().toLowerCase().toCharArray());
+			}
+			return null;
+		});
 	}
 
 	/**
@@ -596,7 +610,7 @@ public class Dictionary {
 	}
 
 	public void reLoadMainDict() {
-		logger.info("重新加载词典...");
+		logger.info("重新加载词典 reload dic...");
 		// 新开一个实例加载词典，减少加载过程对当前词典使用的影响
 		Dictionary tmpDict = new Dictionary(configuration);
 		tmpDict.configuration = getSingleton().configuration;
@@ -604,7 +618,7 @@ public class Dictionary {
 		tmpDict.loadStopWordDict();
 		_MainDict = tmpDict._MainDict;
 		_StopWords = tmpDict._StopWords;
-		logger.info("重新加载词典完毕...");
+		logger.info("重新加载词典完毕 reload dic completed...");
 	}
 
 }

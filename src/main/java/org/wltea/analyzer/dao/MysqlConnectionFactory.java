@@ -17,6 +17,14 @@ public class MysqlConnectionFactory {
 
     private static final String PASSWORD = "123456";
 
+    static {
+        try {
+            Class.forName(MYSQL_DRIVER);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     public static Connection getConnection() {
         List<Connection> connectionList = pool.getAccessList();
@@ -34,7 +42,6 @@ public class MysqlConnectionFactory {
         Connection connection = null;
         for (int i = 0; i < 5 && connection == null; i++ ) {
             try {
-                Class.forName(MYSQL_DRIVER);
                 connection = DriverManager.getConnection(MYSQL_URL, USERNAME, PASSWORD);
             }catch (Exception e) {
                 e.printStackTrace();
